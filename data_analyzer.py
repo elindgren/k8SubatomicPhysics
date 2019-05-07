@@ -2,6 +2,7 @@
 import numpy as np
 import scipy as sp
 import scipy.signal
+import matplotlib
 import matplotlib.pyplot as plt
 
 
@@ -9,7 +10,7 @@ def parse_file_to_dict(file, labelkeys=None):
     d = {}
     for key in labelkeys:
         d[key] = []
-    with open(file) as f:
+    with open("./data/" + file + ".txt") as f:
         line_nbr = 0
         for line in f:
             vals = line.split()
@@ -22,7 +23,8 @@ def parse_file_to_dict(file, labelkeys=None):
 
 
 # specify file name
-filename = "./data/co60_coinc.txt"
+compare_coin = False
+filename = "na22_coinc_90"
 # parse .txt-file to dict
 data = parse_file_to_dict(filename, ["E1", "E2", "T"])
 # Calibrate channel - calibration data from lab
@@ -58,36 +60,141 @@ data["E2"] = data["E2"]*cal2
 # *******
 
 # Declare subplots
-fig, axs = plt.subplots(2, 2, figsize=(15, 15))  # Lower resolution later - this is very high
-# *************** No coincidence
-# ******* Plot E1
-binsE1_nc = len(np.unique(data["E1"]))  # bins with no coincidence
-axs[0, 0].hist(data["E1"], binsE1_nc)
-axs[0, 0].set_xlabel("E1 - no coin")
-# ******* Plot E2
-binsE2_nc = len(np.unique(data["E2"]))
-axs[0, 1].hist(data["E2"], binsE2_nc)
-axs[0, 1].set_xlabel("E2 - no coin")
-# ***************
+if compare_coin:
+    fig, axs = plt.subplots(1, 2, sharey=True, figsize=(10, 6))  # Lower resolution later - this is very high
+    axs[0].set_ylim(0,500)
+    axs[0].set_ylabel("Antal")
+    axs[1].set_ylim(0,500)
+    # *************** No coincidence
+    # ******* Plot E1
+    binsE1_nc = len(np.unique(data["E1"]))  # bins with no coincidence
+    axs[0].hist(data["E1"], binsE1_nc, log=False)
+    axs[0].set_xlabel("Energi, i KeV \n Utan koincidens")
+    # ******* Plot E2
+    # binsE2_nc = len(np.unique(data["E2"]))
+    # axs[0,1].hist(data["E2"], binsE2_nc)
+    # axs[0,1].set_xlabel("E2 - no coin")
+    # ***************
 
-# # *************** With coincidence
-# First apply coincidence - loop through data and remove points where T \neq 0
-coin_data = {}
-bad_idx = []
-for idx in range(len(data["E1"])):
-    if not data["T"][idx] == 0:
-        bad_idx.append(idx)
-coin_data["E1"] = np.delete(data["E1"], bad_idx)
-coin_data["E2"] = np.delete(data["E2"], bad_idx)
+    # # *************** With coincidence
+    # First apply coincidence - loop through data and remove points where T \neq 0
+    coin_data = {}
+    bad_idx = []
+    for idx in range(len(data["E1"])):
+        if not data["T"][idx] == 0:
+            bad_idx.append(idx)
+    coin_data["E1"] = np.delete(data["E1"], bad_idx)
+    coin_data["E2"] = np.delete(data["E2"], bad_idx)
 
-# ******* Plot E1
-binsE1_wc = len(np.unique(coin_data["E1"]))
-axs[1, 0].hist(coin_data["E1"], binsE1_wc)
-axs[1, 0].set_xlabel("E1 - with coin")
-# ******* Plot E2
-binsE2_wc = len(np.unique(coin_data["E2"]))
-axs[1, 1].hist(coin_data["E2"], binsE2_wc)
-axs[1, 1].set_xlabel("E2 - with coin")
-# ***************
+    # ******* Plot E1
+    binsE1_wc = len(np.unique(coin_data["E1"]))
+    axs[1].hist(coin_data["E1"], binsE1_wc, log=False)
+    axs[1].set_xlabel("Energi, i KeV \n Med koincidens")
+    # ******* Plot E2
+    # binsE2_wc = len(np.unique(coin_data["E2"]))
+    # axs[1, 1].hist(coin_data["E2"], binsE2_wc)
+    # axs[1, 1].set_xlabel("E2 - with coin")
+    # ***************
+    # Increase font size etc.
+    for i in range(len(axs)):
+        #axs[i].set_linewdith(10)
+        for idx, item in enumerate(([axs[i].title, axs[i].xaxis.label, axs[i].yaxis.label] +
+                     axs[i].get_xticklabels() + axs[i].get_yticklabels())):
+            if idx < 4:
+                item.set_fontsize(16)
+            else:
+                item.set_fontsize(14)
+else:
+    fig, axs = plt.subplots(1,1,figsize=(6, 6))
+    axs.set_ylim(0, 500)
+    axs.set_ylabel("Antal")
+    axs.set_ylim(0, 500)
+    # # *************** With coincidence
+    # First apply coincidence - loop through data and remove points where T \neq 0
+    coin_data = {}
+    bad_idx = []
+    for idx in range(len(data["E1"])):
+        if not data["T"][idx] == 0:
+            bad_idx.append(idx)
+    coin_data["E1"] = np.delete(data["E1"], bad_idx)
+    coin_data["E2"] = np.delete(data["E2"], bad_idx)
+
+    # ******* Plot E1
+    binsE1_wc = len(np.unique(coin_data["E1"]))
+    axs.hist(coin_data["E1"], binsE1_wc, log=False)
+    axs.set_xlabel("Energi, i KeV \n Med koincidens")
+
+    for idx, item in enumerate(([axs.title, axs.xaxis.label, axs.yaxis.label] +
+                                axs.get_xticklabels() + axs.get_yticklabels())):
+        if idx < 4:
+            item.set_fontsize(16)
+        else:
+            item.set_fontsize(14)
+
+plt.savefig(filename+"_hist.png", format="png", bbox_inches='tight')
+plt.show()
+
+# Plot coincidence spectrum
+# Declare subplots
+if compare_coin:
+    fig, axs = plt.subplots(1, 2, sharey=True, figsize=(10, 6))  # Lower resolution later - this is very high
+    axs[0].set_ylabel("Antal")
+    # *************** No coincidence
+    # ******* Plot E1
+    axs[0].scatter(data["E1"], data["E2"], s=0.001)
+    axs[0].set_xlabel("Detektor A, Energi i KeV \n Utan koincidens")
+    axs[0].set_ylabel("Detektor B, Energi i KeV")
+
+    # # *************** With coincidence
+    # First apply coincidence - loop through data and remove points where T \neq 0
+    coin_data = {}
+    bad_idx = []
+    for idx in range(len(data["E1"])):
+        if not data["T"][idx] == 0:
+            bad_idx.append(idx)
+    coin_data["E1"] = np.delete(data["E1"], bad_idx)
+    coin_data["E2"] = np.delete(data["E2"], bad_idx)
+
+    # ******* Plot E1
+    axs[1].scatter(coin_data["E1"], coin_data["E2"], s=0.001)
+    axs[1].set_xlabel("Detektor A, Energi i KeV \n Med koincidens")
+    axs[1].set_ylabel("Detektor B, Energi i KeV")
+
+    # Increase font size etc.
+    for i in range(len(axs)):
+        for idx, item in enumerate(([axs[i].title, axs[i].xaxis.label, axs[i].yaxis.label] +
+                     axs[i].get_xticklabels() + axs[i].get_yticklabels())):
+            if idx < 4:
+                item.set_fontsize(16)
+            else:
+                item.set_fontsize(14)
+else:
+    fig, axs = plt.subplots(1,1,figsize=(6, 6))
+    axs.set_ylabel("Antal")
+
+    # # *************** With coincidence
+    # First apply coincidence - loop through data and remove points where T \neq 0
+    coin_data = {}
+    bad_idx = []
+    for idx in range(len(data["E1"])):
+        if not data["T"][idx] == 0:
+            bad_idx.append(idx)
+    coin_data["E1"] = np.delete(data["E1"], bad_idx)
+    coin_data["E2"] = np.delete(data["E2"], bad_idx)
+
+    # ******* Plot E1
+    axs.scatter(coin_data["E1"], coin_data["E2"], s=0.01)
+    axs.set_ylim(0,3000)
+    axs.set_xlim(0,3000)
+    axs.set_xlabel("Detektor A, Energi i KeV")
+    axs.set_ylabel("Detektor B, Energi i KeV")
+
+    for idx, item in enumerate(([axs.title, axs.xaxis.label, axs.yaxis.label] +
+                                axs.get_xticklabels() + axs.get_yticklabels())):
+        if idx < 4:
+            item.set_fontsize(16)
+        else:
+            item.set_fontsize(14)
+plt.savefig(filename+"_coin.png", format="png", bbox_inches='tight')
 
 plt.show()
